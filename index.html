@@ -1,200 +1,67 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Interactive Merge Sort Visualizer</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Merge Sort Visualizer</title>
+
+  <!-- Tailwind CDN (optional, safe on Pages) -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 UMD builds -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+  <!-- Babel standalone so the browser can understand JSX in text/babel scripts -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
-    body { background:#0b0c10; }
+    html,body,#root{height:100%}
   </style>
 </head>
-<body>
-  <div id="root"></div>
+<body class="bg-zinc-950 text-zinc-100">
+  <div id="root" class="p-6"></div>
 
+  <!-- Your app code. Must be type="text/babel" if it contains JSX. -->
   <script type="text/babel">
-    const { useState, useMemo, useRef } = React;
-
-    const clamp = (n,a,b) => Math.max(a, Math.min(b, n));
-    const randint = (a,b) => a + Math.floor(Math.random()*(b-a+1));
-    const parseArray = (text) => {
-      if (!text.trim()) return [];
-      return text.split(/[ ,]+/).map(s=>Number(s)).filter(n=>Number.isFinite(n));
-    };
-    const fmtArray = (arr) => arr.join(" ");
-
-    function buildTrace(n){
-      const nodes = [];
-      let id = 0;
-      function rec(l,r,depth,parentId){
-        const N = r-l+1;
-        const m = l < r ? Math.floor((l+r)/2) : null;
-        const thisId = id++;
-        nodes.push({id:thisId,l,r,m,N,depth,parentId});
-        if (m===null) return;
-        rec(l,m,depth+1,thisId);
-        rec(m+1,r,depth+1,thisId);
-      }
-      if (n>0) rec(0,n-1,0,null);
-      return nodes;
-    }
-
-    function layoutNodes(nodes){
-      if (!nodes.length) return { positioned:[], width:0, height:0 };
-      const byDepth = new Map();
-      for (const nd of nodes){
-        if (!byDepth.has(nd.depth)) byDepth.set(nd.depth, []);
-        byDepth.get(nd.depth).push(nd);
-      }
-      for (const arr of byDepth.values()) arr.sort((a,b)=>a.id-b.id);
-      const cardW=260, cardH=120, hGap=18, vGap=40;
-      const maxCols = Math.max(...[...byDepth.values()].map(a=>a.length));
-      const width = maxCols*cardW + (maxCols-1)*hGap;
-      const depthCount = Math.max(...nodes.map(n=>n.depth))+1;
-      const height = depthCount*cardH + (depthCount-1)*vGap;
-      const positioned = [];
-      [...byDepth.entries()].sort((a,b)=>a[0]-b[0]).forEach(([depth,arr])=>{
-        const totalW = arr.length*cardW + (arr.length-1)*hGap;
-        const startX = (width-totalW)/2;
-        arr.forEach((n,i)=>{
-          const x = startX + i*(cardW+hGap);
-          const y = depth*(cardH+vGap);
-          positioned.push({...n,x,y,w:cardW,h:cardH});
-        });
-      });
-      return { positioned, width, height };
-    }
-
-    function Card({n, compact}){
-      const leaf = n.m === null;
-      return (
-        <div className={\`bg-zinc-900 border border-zinc-800 rounded-2xl shadow-sm p-3 w-[260px] \${compact?'py-2':''}\`} style={{height: compact?96:120}}>
-          <div className="text-xs text-zinc-400 flex justify-between">
-            <span>depth {n.depth}</span>
-            <span className="font-mono text-amber-300">{n.parentId==null?'root':''}</span>
-          </div>
-          <div className="mt-1 grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[13px] leading-tight">
-            <div className="text-zinc-400">Merge_sort(a, <span className="text-sky-400 font-semibold">{n.l}</span>, <span className="text-sky-400 font-semibold">{n.r}</span>)</div><div></div>
-            <div className="text-zinc-400">// N</div><div className="text-sky-400 font-semibold">{n.N}</div>
-            {leaf ? (<>
-              <div className="text-zinc-400">if (l ≥ r)</div><div><b>return</b></div>
-            </>) : (<>
-              <div className="text-zinc-400">m = ⌊(l+r)/2⌋</div><div className="text-sky-400 font-semibold">{n.m}</div>
-              <div className="text-zinc-400">Merge_sort(a, l, m)</div><div>(<span className="text-sky-400 font-semibold">{n.l}</span>, <span className="text-sky-400 font-semibold">{n.m}</span>)</div>
-              <div className="text-zinc-400">Merge_sort(a, m+1, r)</div><div>(<span className="text-sky-400 font-semibold">{n.m+1}</span>, <span className="text-sky-400 font-semibold">{n.r}</span>)</div>
-              <div className="text-zinc-400">Merge(a, l, m, r)</div><div>(<span className="text-sky-400 font-semibold">{n.l}</span>, <span className="text-sky-400 font-semibold">{n.m}</span>, <span className="text-sky-400 font-semibold">{n.r}</span>)</div>
-            </>)}
-          </div>
-        </div>
-      );
-    }
+    const { useState } = React;
 
     function App(){
-      const [arrText, setArrText] = useState("7 1 3 9 4 1 5");
-      const arr = useMemo(()=>parseArray(arrText).slice(0,64),[arrText]);
-      const n = arr.length;
-      const [showArrows,setShowArrows] = useState(true);
-      const [showIndices,setShowIndices] = useState(true);
-      const [compact,setCompact] = useState(false);
+      const [arr,setArr] = useState([10,7,8,9,1,5]);
 
-      const nodes = useMemo(()=>buildTrace(n),[n]);
-      const layout = useMemo(()=>layoutNodes(nodes),[nodes]);
-
-      const posMap = useMemo(()=>{
-        const m = new Map();
-        for (const p of layout.positioned) m.set(p.id,p);
-        return m;
-      },[layout]);
-
-      const connectors = useMemo(()=>{
-        if (!showArrows) return [];
-        const lines = [];
-        for (const child of layout.positioned){
-          if (child.parentId==null) continue;
-          const parent = posMap.get(child.parentId);
-          if (!parent) continue;
-          const x1 = parent.x + parent.w/2, y1 = parent.y + parent.h;
-          const x2 = child.x + child.w/2, y2 = child.y;
-          const mx = (x1+x2)/2;
-          lines.push({x1,y1,mx,y2,x2});
+      function mergeSort(a){
+        if(a.length <= 1) return a;
+        const mid = Math.floor(a.length/2);
+        const left = mergeSort(a.slice(0,mid));
+        const right = mergeSort(a.slice(mid));
+        const out = [];
+        let i=0,j=0;
+        while(i<left.length || j<right.length){
+          if(j>=right.length || (i<left.length && left[i] <= right[j])) out.push(left[i++]);
+          else out.push(right[j++]);
         }
-        return lines;
-      },[layout,posMap,showArrows]);
-
-      const randomize = () => {
-        const len = randint(2,12);
-        const vals = Array.from({length:len}, ()=>randint(0,99));
-        setArrText(fmtArray(vals));
-      };
-      const setSize = (len) => {
-        len = clamp(len|0, 0, 24);
-        const current = parseArray(arrText);
-        let base = current.slice(0,len);
-        while (base.length < len) base.push(randint(0,99));
-        setArrText(fmtArray(base));
-      };
+        return out;
+      }
 
       return (
-        <div className="min-h-screen text-zinc-100 p-6 space-y-4">
-          <h1 className="text-2xl font-semibold">Interactive Merge Sort Visualizer</h1>
-          <p className="text-zinc-300 text-sm">Edit the array or randomize; the recursion frames, parameters, and connectors update instantly.</p>
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[280px]">
-              <label className="block text-sm text-zinc-300 mb-1">Array values (space or comma separated)</label>
-              <input value={arrText} onChange={e=>setArrText(e.target.value)} className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-500" placeholder="e.g. 7 1 3 9 4 1 5"/>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-zinc-300">Size</label>
-              <input type="number" min={0} max={24} value={n} onChange={e=>setSize(Number(e.target.value))} className="w-20 rounded-xl bg-zinc-900 border border-zinc-800 px-2 py-2"/>
-              <button onClick={randomize} className="rounded-xl bg-sky-600 hover:bg-sky-700 px-3 py-2 text-sm">Randomize</button>
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={showArrows} onChange={e=>setShowArrows(e.target.checked)} /> Show arrows</label>
-              <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={showIndices} onChange={e=>setShowIndices(e.target.checked)} /> Show indices</label>
-              <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={compact} onChange={e=>setCompact(e.target.checked)} /> Compact cards</label>
-            </div>
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-2xl font-bold mb-4">Merge Sort Visualizer</h1>
+          <p className="mb-3 text-sm opacity-80">If you can read this, Pages and scripts are loading.</p>
+          <div className="flex gap-2 mb-4">
+            <button className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-500"
+              onClick={()=>setArr(mergeSort([...arr]))}>Sort</button>
+            <button className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600"
+              onClick={()=>setArr(Array.from({length:10},()=>Math.floor(Math.random()*99)))}>Shuffle</button>
           </div>
-          <div>
-            <div className="flex gap-2 flex-wrap">
-              {arr.map((v,i)=> (
-                <div key={i} className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-lg font-bold" style={{color:'#ef4444'}}>{v}</div>
-              ))}
-            </div>
-            {showIndices && (
-              <div className="flex gap-2 mt-1 flex-wrap">
-                {arr.map((_,i)=> (<div key={i} className="w-12 text-center text-xs text-zinc-400">{i}</div>))}
-              </div>
-            )}
+          <div className="flex gap-1">
+            {arr.map((v,i)=><div key={i} className="bg-emerald-500 w-6" style={{height: 4*v}} title={v}></div>)}
           </div>
-          <div className="relative overflow-auto rounded-2xl border border-zinc-800" style={{height: 540}}>
-            <svg width={layout.width} height={layout.height} className="absolute top-0 left-0">
-              <defs>
-                <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto-start-reverse">
-                  <path d="M0,0 L6,3 L0,6 Z" fill="#64748b" />
-                </marker>
-              </defs>
-              {connectors.map((c,idx)=> (
-                <path key={idx} d={\`M \${c.x1} \${c.y1} Q \${c.mx} \${(c.y1+c.y2)/2} \${c.x2} \${c.y2}\`} stroke="#64748b" strokeWidth="1.5" fill="none" markerEnd="url(#arrow)" />
-              ))}
-            </svg>
-            <div className="absolute top-0 left-0" style={{width: layout.width, height: layout.height}}>
-              {layout.positioned.map(p => (
-                <div key={p.id} style={{ position:'absolute', left: p.x, top: p.y }}>
-                  <Card n={p} compact={compact} />
-                </div>
-              ))}
-            </div>
-          </div>
-          <footer className="text-xs text-zinc-400">Tip: change the array and watch the tree reshape. Numbers in <span className="font-semibold" style={{color:'#ef4444'}}>red</span> are array values; parameters are in <span className="font-semibold text-sky-400">blue</span>.</footer>
         </div>
       );
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App/>);
+    root.render(<App />);
   </script>
 </body>
 </html>
