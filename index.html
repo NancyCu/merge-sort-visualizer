@@ -262,7 +262,12 @@
               alert("Please create and fill the array first!");
               return;
             }
-            this.arr = [...this.customArray];
+            const hasInvalid = this.customArray.some(val => val === '' || isNaN(Number(val)));
+            if (hasInvalid) {
+              alert("Please fill every entry with a valid number before sorting.");
+              return;
+            }
+            this.arr = this.customArray.map(val => Number(val));
             this.steps = [];
             this.currentStep = -1;
             this.totalOperations = 0;
@@ -286,22 +291,20 @@
           }
 
           createCustomArray() {
-            const size = parseInt(document.getElementById('arraySize').value);
+            const size = parseInt(document.getElementById('arraySize').value, 10);
             if (size < 1 || size > 20) {
               alert("Please enter array size between 1 and 20");
               return;
             }
             this.customSize = size;
-            this.customArray = new Array(size).fill(0);
+            this.customArray = new Array(size).fill('');
             this.isCustomMode = true;
             this.render();
           }
 
           updateArrayElement(index, value) {
-            const num = parseInt(value);
-            if (!isNaN(num)) {
-              this.customArray[index] = num;
-            }
+            this.customArray[index] = value;
+            this.render();
           }
 
           toggleMode() {
@@ -319,14 +322,22 @@
           }
 
           render() {
-            const currentArray = this.currentStep >= 0 ? this.steps[this.currentStep].array : this.arr;
-            const bars = currentArray.map((v, i) => 
-              `<div class="bg-emerald-500 w-6" style="height: ${Math.max(4 * v, 4)}px; display: inline-block; margin-right: 2px; border-radius: 2px;" title="Value: ${v}"></div>`
-            ).join('');
+            const currentArray = this.currentStep >= 0
+              ? this.steps[this.currentStep].array
+              : (this.isCustomMode && this.customArray.length > 0
+                ? this.customArray.map(v => v === '' || isNaN(Number(v)) ? 0 : Number(v))
+                : this.arr);
+            const bars = currentArray.map((v, i) => {
+              const label = (this.isCustomMode && this.currentStep < 0)
+                ? (this.customArray[i] === '' ? '(empty)' : this.customArray[i])
+                : v;
+              const height = Math.max(4 * (isNaN(Number(v)) ? 0 : Number(v)), 4);
+              return `<div class="bg-emerald-500 w-6" style="height: ${height}px; display: inline-block; margin-right: 2px; border-radius: 2px;" title="Value: ${label}"></div>`;
+            }).join('');
 
-            const customInputs = this.isCustomMode && this.customArray.length > 0 ? 
-              this.customArray.map((val, i) => 
-                `<input type="number" id="element${i}" value="${val}" onchange="window.visualizer.updateArrayElement(${i}, this.value)" style="width: 60px; margin: 2px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: white;" placeholder="Val">`
+            const customInputs = this.isCustomMode && this.customArray.length > 0 ?
+              this.customArray.map((val, i) =>
+                `<input type="number" id="element${i}" value="${val}" oninput="window.visualizer.updateArrayElement(${i}, this.value)" style="width: 60px; margin: 2px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: white;" placeholder="Val">`
               ).join('') : '';
 
             const stepInfo = this.currentStep >= 0 ? `
