@@ -343,7 +343,7 @@
 
             const customInputs = this.isCustomMode && this.customArray.length > 0 ?
               this.customArray.map((val, i) =>
-                `<input type="number" id="element${i}" value="${val}" oninput="window.visualizer.updateArrayElement(${i}, this.value)" style="width: 60px; margin: 2px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: white;" placeholder="Val">`
+                `<input type="number" id="element${i}" value="${val}" oninput="window.visualizer.updateArrayElement(${i}, this.value)" class="w-16 m-1 p-1 rounded border border-gray-700 bg-zinc-800 text-white" placeholder="Val">`
               ).join('') : '';
 
             const stepInfo = this.currentStep >= 0 ? `
