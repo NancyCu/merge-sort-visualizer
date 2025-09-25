@@ -291,8 +291,13 @@
           }
 
           createCustomArray() {
-            const size = parseInt(document.getElementById('arraySize').value, 10);
-            if (size < 1 || size > 20) {
+            const arraySizeElem = document.getElementById('arraySize');
+            if (!arraySizeElem || arraySizeElem.value == null || arraySizeElem.value.trim() === '') {
+              alert("Array size input is missing or empty.");
+              return;
+            }
+            const size = parseInt(arraySizeElem.value, 10);
+            if (isNaN(size) || size < 1 || size > 20) {
               alert("Please enter array size between 1 and 20");
               return;
             }
