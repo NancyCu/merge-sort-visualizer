@@ -298,10 +298,15 @@
           }
 
           updateArrayElement(index, value) {
-            const num = parseInt(value);
-            if (!isNaN(num)) {
-              this.customArray[index] = num;
+            if (value === '') {
+              this.customArray[index] = 0;
+            } else {
+              const num = parseInt(value);
+              if (!isNaN(num)) {
+                this.customArray[index] = num;
+              }
             }
+            this.render();
           }
 
           toggleMode() {
@@ -319,7 +324,11 @@
           }
 
           render() {
-            const currentArray = this.currentStep >= 0 ? this.steps[this.currentStep].array : this.arr;
+            const currentArray = this.currentStep >= 0
+              ? this.steps[this.currentStep].array
+              : (this.isCustomMode && this.customArray.length > 0
+                ? this.customArray
+                : this.arr);
             const bars = currentArray.map((v, i) => 
               `<div class="bg-emerald-500 w-6" style="height: ${Math.max(4 * v, 4)}px; display: inline-block; margin-right: 2px; border-radius: 2px;" title="Value: ${v}"></div>`
             ).join('');
