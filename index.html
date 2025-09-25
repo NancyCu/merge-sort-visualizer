@@ -262,12 +262,13 @@
               alert("Please create and fill the array first!");
               return;
             }
-            const hasInvalid = this.customArray.some(val => val === '' || isNaN(Number(val)));
+            const convertedArray = this.customArray.map(val => Number(val));
+            const hasInvalid = this.customArray.some((val, idx) => val === '' || isNaN(convertedArray[idx]));
             if (hasInvalid) {
               alert("Please fill every entry with a valid number before sorting.");
               return;
             }
-            this.arr = this.customArray.map(val => Number(val));
+            this.arr = convertedArray;
             this.steps = [];
             this.currentStep = -1;
             this.totalOperations = 0;
