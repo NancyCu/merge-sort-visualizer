@@ -328,16 +328,27 @@
           }
 
           render() {
+            let customArrayNumbers = [];
+            if (this.isCustomMode && this.customArray.length > 0) {
+              customArrayNumbers = this.customArray.map(v => {
+                const num = Number(v);
+                return (v === '' || isNaN(num)) ? 0 : num;
+              });
+            }
             const currentArray = this.currentStep >= 0
               ? this.steps[this.currentStep].array
               : (this.isCustomMode && this.customArray.length > 0
-                ? this.customArray.map(v => v === '' || isNaN(Number(v)) ? 0 : Number(v))
+                ? customArrayNumbers
                 : this.arr);
             const bars = currentArray.map((v, i) => {
-              const label = (this.isCustomMode && this.currentStep < 0)
-                ? (this.customArray[i] === '' ? '(empty)' : this.customArray[i])
-                : v;
-              const numV = Number(v);
+              let label, numV;
+              if (this.isCustomMode && this.currentStep < 0) {
+                label = this.customArray[i] === '' ? '(empty)' : this.customArray[i];
+                numV = customArrayNumbers[i];
+              } else {
+                label = v;
+                numV = Number(v);
+              }
               const height = Math.max(4 * (isNaN(numV) ? 0 : numV), 4);
               return `<div class="bg-emerald-500 w-6" style="height: ${height}px; display: inline-block; margin-right: 2px; border-radius: 2px;" title="Value: ${label}"></div>`;
             }).join('');
