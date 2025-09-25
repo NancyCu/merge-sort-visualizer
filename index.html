@@ -27,6 +27,7 @@
     
     /* Fallback styles in case Tailwind CDN fails */
     .max-w-3xl { max-width: 48rem; margin: 0 auto; }
+    .max-w-4xl { max-width: 56rem; margin: 0 auto; }
     .mx-auto { margin-left: auto; margin-right: auto; }
     .text-2xl { font-size: 1.5rem; line-height: 2rem; }
     .font-bold { font-weight: 700; }
@@ -38,10 +39,13 @@
     .gap-2 { gap: 0.5rem; }
     .gap-1 { gap: 0.25rem; }
     .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
     .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
     .rounded { border-radius: 0.25rem; }
     .bg-blue-600 { background-color: #2563eb; }
     .bg-zinc-700 { background-color: #3f3f46; }
+    .bg-gray-600 { background-color: #4b5563; }
+    .bg-emerald-600 { background-color: #059669; }
     .bg-emerald-500 { background-color: #10b981; }
     .w-6 { width: 1.5rem; }
     .p-6 { padding: 1.5rem; }
@@ -55,6 +59,35 @@
       border: none; 
       transition: background-color 0.2s ease;
       color: inherit;
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    pre {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    
+    input[type="number"] {
+      font-family: inherit;
+    }
+    
+    .step-navigation button {
+      padding: 8px 16px;
+      margin: 0 4px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .step-navigation button:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
   </style>
 </head>
@@ -118,16 +151,66 @@
         class MergeSortVisualizer {
           constructor() {
             this.arr = [10, 7, 8, 9, 1, 5];
+            this.steps = [];
+            this.currentStep = -1;
+            this.isCustomMode = false;
+            this.customSize = 6;
+            this.customArray = [];
+            this.totalOperations = 0;
             this.render();
           }
 
-          mergeSort(a) {
-            if (a.length <= 1) return a;
+          mergeSortWithSteps(a, depth = 0, start = 0, description = "Initial array") {
+            const step = {
+              array: [...a],
+              depth: depth,
+              start: start,
+              description: description,
+              cCode: this.getCCodeForStep(description, a, depth),
+              timeComplexity: this.getTimeComplexity(a.length, depth),
+              operations: 1
+            };
+            this.steps.push(step);
+            this.totalOperations++;
+
+            if (a.length <= 1) {
+              step.cCode = `// Base case: array of size ${a.length}\nif (n <= 1) {\n    return arr; // Already sorted\n}`;
+              step.timeComplexity = "O(1) - Base case";
+              return a;
+            }
+
             const mid = Math.floor(a.length / 2);
-            const left = this.mergeSort(a.slice(0, mid));
-            const right = this.mergeSort(a.slice(mid));
+            
+            // Add divide step
+            this.steps.push({
+              array: [...a],
+              depth: depth,
+              start: start,
+              description: `Dividing array into two halves at index ${mid}`,
+              cCode: `// Divide the array\nint mid = (low + high) / 2;\n// Left: indices ${start} to ${start + mid - 1}\n// Right: indices ${start + mid} to ${start + a.length - 1}`,
+              timeComplexity: "O(1) - Division step",
+              operations: 1
+            });
+            this.totalOperations++;
+
+            const left = this.mergeSortWithSteps(a.slice(0, mid), depth + 1, start, `Left subarray [${start}-${start + mid - 1}]`);
+            const right = this.mergeSortWithSteps(a.slice(mid), depth + 1, start + mid, `Right subarray [${start + mid}-${start + a.length - 1}]`);
+            
             const out = [];
             let i = 0, j = 0;
+            
+            // Add merge step
+            this.steps.push({
+              array: [...left, ...right],
+              depth: depth,
+              start: start,
+              description: `Merging left [${left.join(', ')}] and right [${right.join(', ')}]`,
+              cCode: this.getMergeCode(left, right),
+              timeComplexity: `O(${a.length}) - Merge operation`,
+              operations: a.length
+            });
+            this.totalOperations += a.length;
+
             while (i < left.length || j < right.length) {
               if (j >= right.length || (i < left.length && left[i] <= right[j])) {
                 out.push(left[i++]);
@@ -135,48 +218,194 @@
                 out.push(right[j++]);
               }
             }
+
+            // Add merged result step
+            this.steps.push({
+              array: [...out],
+              depth: depth,
+              start: start,
+              description: `Merged result: [${out.join(', ')}]`,
+              cCode: `// Merged array result\nint merged[] = {${out.join(', ')}};`,
+              timeComplexity: `O(${a.length}) - Merge complete`,
+              operations: 0
+            });
+
             return out;
           }
 
+          getCCodeForStep(description, array, depth) {
+            const indent = '    '.repeat(depth);
+            return `${indent}// ${description}\n${indent}void mergeSort(int arr[], int low, int high) {\n${indent}    if (low < high) {\n${indent}        int mid = (low + high) / 2;\n${indent}        mergeSort(arr, low, mid);\n${indent}        mergeSort(arr, mid + 1, high);\n${indent}        merge(arr, low, mid, high);\n${indent}    }\n${indent}}`;
+          }
+
+          getMergeCode(left, right) {
+            return `// Merge function\nvoid merge(int arr[], int l, int m, int r) {\n    int left[] = {${left.join(', ')}};\n    int right[] = {${right.join(', ')}};\n    int i = 0, j = 0, k = l;\n    \n    while (i < ${left.length} && j < ${right.length}) {\n        if (left[i] <= right[j])\n            arr[k++] = left[i++];\n        else\n            arr[k++] = right[j++];\n    }\n    \n    // Copy remaining elements\n    while (i < ${left.length}) arr[k++] = left[i++];\n    while (j < ${right.length}) arr[k++] = right[j++];\n}`;
+          }
+
+          getTimeComplexity(size, depth) {
+            if (size <= 1) return "O(1) - Base case";
+            if (depth === 0) return `O(n log n) where n = ${size}`;
+            return `O(${size}) - Processing ${size} elements at depth ${depth}`;
+          }
+
           sortArray() {
-            this.arr = this.mergeSort([...this.arr]);
+            this.steps = [];
+            this.currentStep = -1;
+            this.totalOperations = 0;
+            const sortedArray = this.mergeSortWithSteps([...this.arr]);
+            this.currentStep = 0;
+            this.render();
+          }
+
+          startCustomSort() {
+            if (this.customArray.length === 0) {
+              alert("Please create and fill the array first!");
+              return;
+            }
+            this.arr = [...this.customArray];
+            this.steps = [];
+            this.currentStep = -1;
+            this.totalOperations = 0;
+            const sortedArray = this.mergeSortWithSteps([...this.arr]);
+            this.currentStep = 0;
+            this.render();
+          }
+
+          nextStep() {
+            if (this.currentStep < this.steps.length - 1) {
+              this.currentStep++;
+              this.render();
+            }
+          }
+
+          prevStep() {
+            if (this.currentStep > 0) {
+              this.currentStep--;
+              this.render();
+            }
+          }
+
+          createCustomArray() {
+            const size = parseInt(document.getElementById('arraySize').value);
+            if (size < 1 || size > 20) {
+              alert("Please enter array size between 1 and 20");
+              return;
+            }
+            this.customSize = size;
+            this.customArray = new Array(size).fill(0);
+            this.isCustomMode = true;
+            this.render();
+          }
+
+          updateArrayElement(index, value) {
+            const num = parseInt(value);
+            if (!isNaN(num)) {
+              this.customArray[index] = num;
+            }
+          }
+
+          toggleMode() {
+            this.isCustomMode = !this.isCustomMode;
+            this.steps = [];
+            this.currentStep = -1;
             this.render();
           }
 
           shuffleArray() {
             this.arr = Array.from({ length: 10 }, () => Math.floor(Math.random() * 99) + 1);
+            this.steps = [];
+            this.currentStep = -1;
             this.render();
           }
 
           render() {
-            const bars = this.arr.map((v, i) => 
+            const currentArray = this.currentStep >= 0 ? this.steps[this.currentStep].array : this.arr;
+            const bars = currentArray.map((v, i) => 
               `<div class="bg-emerald-500 w-6" style="height: ${Math.max(4 * v, 4)}px; display: inline-block; margin-right: 2px; border-radius: 2px;" title="Value: ${v}"></div>`
             ).join('');
 
+            const customInputs = this.isCustomMode && this.customArray.length > 0 ? 
+              this.customArray.map((val, i) => 
+                `<input type="number" id="element${i}" value="${val}" onchange="window.visualizer.updateArrayElement(${i}, this.value)" style="width: 60px; margin: 2px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: white;" placeholder="Val">`
+              ).join('') : '';
+
+            const stepInfo = this.currentStep >= 0 ? `
+              <div style="margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 8px;">
+                <h3 style="color: #10b981; margin-bottom: 10px;">Step ${this.currentStep + 1} of ${this.steps.length}</h3>
+                <p style="margin-bottom: 10px;"><strong>Description:</strong> ${this.steps[this.currentStep].description}</p>
+                <p style="margin-bottom: 10px;"><strong>Time Complexity:</strong> <span style="color: #fbbf24;">${this.steps[this.currentStep].timeComplexity}</span></p>
+                <div style="margin-bottom: 10px;">
+                  <strong>C Code:</strong>
+                  <pre style="background: #0a0a0a; padding: 10px; border-radius: 4px; overflow-x: auto; margin-top: 5px;"><code style="color: #e5e7eb;">${this.steps[this.currentStep].cCode}</code></pre>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                  <button onclick="window.visualizer.prevStep()" ${this.currentStep === 0 ? 'disabled' : ''} 
+                    style="px-3 py-2 rounded ${this.currentStep === 0 ? 'bg-gray-600' : 'bg-blue-600'}; color: white; border: none; cursor: ${this.currentStep === 0 ? 'not-allowed' : 'pointer'};">Previous</button>
+                  <button onclick="window.visualizer.nextStep()" ${this.currentStep === this.steps.length - 1 ? 'disabled' : ''} 
+                    style="px-3 py-2 rounded ${this.currentStep === this.steps.length - 1 ? 'bg-gray-600' : 'bg-blue-600'}; color: white; border: none; cursor: ${this.currentStep === this.steps.length - 1 ? 'not-allowed' : 'pointer'};">Next</button>
+                </div>
+                ${this.currentStep === this.steps.length - 1 ? `
+                  <div style="margin-top: 15px; padding: 10px; background: #065f46; border-radius: 4px;">
+                    <strong>Final Time Complexity:</strong> <span style="color: #10b981;">O(n log n)</span><br>
+                    <strong>Total Operations:</strong> ${this.totalOperations}<br>
+                    <strong>Array Size:</strong> ${currentArray.length}
+                  </div>
+                ` : ''}
+              </div>
+            ` : '';
+
             document.getElementById('root').innerHTML = `
-              <div class="max-w-3xl mx-auto">
-                <h1 class="text-2xl font-bold mb-4">Merge Sort Visualizer</h1>
+              <div class="max-w-4xl mx-auto">
+                <h1 class="text-2xl font-bold mb-4">Enhanced Merge Sort Visualizer</h1>
                 <p class="mb-3 text-sm opacity-80" style="color: #10b981;">
                   ✓ Fallback mode active - working without external dependencies!
                 </p>
-                <div class="flex gap-2 mb-4">
-                  <button id="sortBtn" class="px-3 py-2 rounded bg-blue-600">Sort</button>
-                  <button id="shuffleBtn" class="px-3 py-2 rounded bg-zinc-700">Shuffle</button>
+                
+                <div style="margin-bottom: 20px; padding: 15px; background: #1a1a1a; border-radius: 8px;">
+                  <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button onclick="window.visualizer.toggleMode()" class="px-3 py-2 rounded ${this.isCustomMode ? 'bg-emerald-600' : 'bg-zinc-700'}">
+                      ${this.isCustomMode ? 'Custom Mode' : 'Default Mode'}
+                    </button>
+                  </div>
+                  
+                  ${this.isCustomMode ? `
+                    <div style="margin-bottom: 15px;">
+                      <label style="display: block; margin-bottom: 5px;">Array Size (N):</label>
+                      <input type="number" id="arraySize" value="${this.customSize}" min="1" max="20" 
+                        style="width: 80px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: white;">
+                      <button onclick="window.visualizer.createCustomArray()" class="px-3 py-2 rounded bg-blue-600" style="margin-left: 10px;">Create Array</button>
+                    </div>
+                    
+                    ${this.customArray.length > 0 ? `
+                      <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px;">Fill Array Elements:</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                          ${customInputs}
+                        </div>
+                      </div>
+                      
+                      <button onclick="window.visualizer.startCustomSort()" class="px-4 py-2 rounded bg-emerald-600" style="margin-right: 10px;">
+                        Start Sorting
+                      </button>
+                    ` : ''}
+                  ` : `
+                    <div class="flex gap-2 mb-4">
+                      <button onclick="window.visualizer.sortArray()" class="px-3 py-2 rounded bg-blue-600">Sort</button>
+                      <button onclick="window.visualizer.shuffleArray()" class="px-3 py-2 rounded bg-zinc-700">Shuffle</button>
+                    </div>
+                  `}
                 </div>
+
                 <div class="flex gap-1 mb-4">
                   ${bars}
                 </div>
                 <p class="text-sm opacity-80">
-                  Current array: [${this.arr.join(', ')}] (${this.arr.length} elements)
+                  Current array: [${currentArray.join(', ')}] (${currentArray.length} elements)
                 </p>
+                
+                ${stepInfo}
               </div>
             `;
-
-            // Add event listeners
-            const sortBtn = document.getElementById('sortBtn');
-            const shuffleBtn = document.getElementById('shuffleBtn');
-            if (sortBtn) sortBtn.onclick = () => this.sortArray();
-            if (shuffleBtn) shuffleBtn.onclick = () => this.shuffleArray();
           }
         }
 
