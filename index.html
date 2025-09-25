@@ -336,7 +336,8 @@
               const label = (this.isCustomMode && this.currentStep < 0)
                 ? (this.customArray[i] === '' ? '(empty)' : this.customArray[i])
                 : v;
-              const height = Math.max(4 * (isNaN(Number(v)) ? 0 : Number(v)), 4);
+              const numV = Number(v);
+              const height = Math.max(4 * (isNaN(numV) ? 0 : numV), 4);
               return `<div class="bg-emerald-500 w-6" style="height: ${height}px; display: inline-block; margin-right: 2px; border-radius: 2px;" title="Value: ${label}"></div>`;
             }).join('');
 
